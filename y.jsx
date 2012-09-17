@@ -1,3 +1,4 @@
+import "js.jsx";
 import "js/web.jsx";
 
 class YSel1 {
@@ -487,6 +488,44 @@ class YSelN {
 
 class Y {
   static const SVGNS = 'http://www.w3.org/2000/svg';
+
+  // Active animator functions
+  static var _anim = [] : Array.<function(t : number) : boolean>;
+
+  static function _requestAnimationFrame(fn : function(:number) : void) : void {
+    var w = dom.window;
+    if (js.global['webkitRequestAnimationFrame'] != null) {
+      w.webkitRequestAnimationFrame(fn);
+      return;
+    }
+    if (js.global['mozRequestAnimationFrame'] != null) {
+      w.mozRequestAnimationFrame(fn);
+      return;
+    }
+    // TODO(knorton): Fall all the way back to setTimeout.
+    w.requestAnimationFrame(fn);
+  }
+
+  static function _tick(t : number) : void {
+    var ao = Y._anim;
+    var an = Y._anim = [] : Array.<function(t : number) : boolean>;
+    var now = Date.now();
+    for (var i = 0, n = ao.length; i < n; ++i) {
+      if (ao[i](now))
+        an.push(ao[i]);
+    }
+
+    if (an.length > 0)
+      Y._requestAnimationFrame(Y._tick);
+  }
+
+  // Adds an animator function to the global queue.
+  static function animate(fn : function(t : number) : boolean) : void {
+    var anim = Y._anim;
+    anim.push(fn);
+    if (anim.length == 1)
+      Y._requestAnimationFrame(Y._tick);
+  }
 
   static function head() : YSel1 {
     return new YSel1(dom.window.document.head);
